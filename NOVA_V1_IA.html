@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05080d">
+<title>N.O.V.A. V1 — IA</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#05080d;color:#eaf2ff;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}.app{max-width:760px;margin:auto;padding:22px 16px 35px}header{text-align:center}.tag{color:#69d9ff;font-size:11px;letter-spacing:3px}.logo{font-size:46px;font-weight:800;letter-spacing:7px;margin:5px}.sub{color:#8293a8;font-size:13px}.status{margin:14px;color:#b7c5d4;font-size:13px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#526274;margin-right:7px}.on{background:#66e6a2;box-shadow:0 0 12px #66e6a2}.panel{background:#0b111a;border:1px solid #1b2b3d;border-radius:20px;padding:17px;margin:13px 0}.answer{min-height:125px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:19px;line-height:1.4}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px}button{background:#101a26;color:#eaf2ff;border:1px solid #24364a;border-radius:14px;padding:14px;font-size:15px;font-weight:650}button:first-child{grid-column:1/-1;background:#12344a}.row{display:flex;gap:8px}input{flex:1;min-width:0;background:#080d14;color:white;border:1px solid #24364a;border-radius:14px;padding:14px;font-size:15px}.hint{color:#8293a8;font-size:11px;line-height:1.4;margin-top:10px}.log{font:12px ui-monospace,monospace;color:#aab9c9;max-height:170px;overflow:auto}.entry{padding:6px 0;border-bottom:1px solid #152231}.key{color:#ffb86b}
+</style></head>
+<body><main class="app">
+<header><div class="tag">PROJECT</div><div class="logo">N.O.V.A.</div><div class="sub">Neural Optical Voice Assistant · V1 + IA</div><div class="status"><span id="dot" class="dot"></span><span id="status">Aguardando conexão</span></div></header>
+<section class="panel answer" id="answer">A N.O.V.A. está pronta. Primeiro configure o servidor seguro.</section>
+<section class="panel"><div class="row"><input id="input" placeholder="Fale ou digite para a N.O.V.A."><button id="send">Enviar</button></div><div class="hint">O navegador não deve conter sua chave secreta da API. A página conversa com um servidor seu, que guarda a chave.</div></section>
+<section class="panel"><div class="buttons"><button id="mic">🎙️ Falar</button><button id="speak">🔊 Repetir resposta</button><button id="stop">⏹ Parar</button></div></section>
+<section class="panel"><b>Registro</b><div class="log" id="log"></div></section>
+</main>
+<script>
+const API_URL="http://localhost:3000/api/chat";
+const $=id=>document.getElementById(id);let last="",rec=null;
+function log(x){let e=document.createElement("div");e.className="entry";e.textContent=new Date().toLocaleTimeString("pt-BR")+" — "+x;$("log").prepend(e)}
+function status(x,on=false){$("status").textContent=x;$("dot").classList.toggle("on",on)}
+function speak(x){if(!("speechSynthesis"in window))return;speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(x);u.lang="pt-BR";u.rate=.95;speechSynthesis.speak(u)}
+async function ask(text){if(!text.trim())return;log("Você: "+text);status("N.O.V.A. pensando…",true);$("answer").textContent="Pensando…";
+try{let r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:text})});if(!r.ok)throw Error("HTTP "+r.status);let d=await r.json();last=d.reply||"Não recebi uma resposta.";$("answer").textContent=last;log("N.O.V.A.: "+last);speak(last);status("Online",true)}
+catch(e){$("answer").textContent="Não consegui conectar ao servidor da N.O.V.A.";log("Erro: "+e.message);status("Servidor desconectado")}}
+$("send").onclick=()=>{let v=$("input").value;$("input").value="";ask(v)};$("input").onkeydown=e=>{if(e.key==="Enter")$("send").click()};$("speak").onclick=()=>speak(last);$("stop").onclick=()=>{speechSynthesis.cancel();try{rec&&rec.stop()}catch(e){}status("Aguardando")};
+$("mic").onclick=()=>{let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){$("answer").textContent="O reconhecimento de voz não está disponível neste navegador.";return}if(rec)try{rec.stop()}catch(e){}rec=new SR();rec.lang="pt-BR";rec.continuous=false;rec.interimResults=false;rec.onstart=()=>status("Escutando…",true);rec.onresult=e=>ask(e.results[0][0].transcript);rec.onerror=e=>{log("Erro de voz: "+e.error);status("Erro no microfone")};rec.start()};
+log("N.O.V.A. V1 + IA carregada.");
+</script></body></html>
